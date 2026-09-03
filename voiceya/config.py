@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     # True 时跳过文件大小 / 音频时长上限。仅本地调试用，线上保持 False。
     debug_no_limits: bool = False
 
+    # ─── Advice v2 分级阈值（秒）──────────────────────────────────
+    # minimal（不出 tone / resonance 面板）< minimal_sec ≤ standard < standard_sec ≤ full。
+    # 上游默认 10 / 30；本地 sentence-live 用时可以调低，让面板在前几句就出现。
+    advice_minimal_tier_sec: float = 10.0
+    advice_standard_tier_sec: float = 30.0
+
     # ─── Engine C / 进阶分析 ──────────────────────────────────────
     # feature-flagged，默认关；开启时需要 visualizer-backend sidecar 可达。
     engine_c_enabled: bool = False

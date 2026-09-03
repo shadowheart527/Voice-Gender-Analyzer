@@ -214,7 +214,8 @@ function _onLiveEvent(ev) {
 			analysisData = data;
 			_updateClassifyModeSwitcher();
 			renderFromSummary(data);
-			if (_phoneTimeline) _phoneTimeline.setData(data.summary.engine_c ?? null);
+			// Open on the last page so the sentence just spoken is in view.
+			if (_phoneTimeline) _phoneTimeline.setData(data.summary.engine_c ?? null, { focus: "end" });
 			_setLiveStatus(
 				t("live.status.sentences", {
 					n: data.summary.live?.sentences ?? ev.index + 1,

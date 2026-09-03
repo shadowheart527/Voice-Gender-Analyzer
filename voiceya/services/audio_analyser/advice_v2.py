@@ -61,9 +61,21 @@ _VOWEL_RES_WEAK = 0.40
 
 
 def _gating_tier(duration_sec: float) -> str:
-    if duration_sec < GATING_MINIMAL_MAX_S:
+    # Thresholds come from settings when the app config is loaded (env
+    # ADVICE_MINIMAL_TIER_SEC / ADVICE_STANDARD_TIER_SEC); the module constants
+    # remain the defaults so standalone tests behave as before.
+    minimal_max, standard_max = GATING_MINIMAL_MAX_S, GATING_STANDARD_MAX_S
+    try:
+        from voiceya.config import CFG  # noqa: PLC0415
+
+        if CFG is not None:
+            minimal_max = float(CFG.advice_minimal_tier_sec)
+            standard_max = float(CFG.advice_standard_tier_sec)
+    except Exception:  # pragma: no cover — config not initialised
+        pass
+    if duration_sec < minimal_max:
         return "minimal"
-    if duration_sec < GATING_STANDARD_MAX_S:
+    if duration_sec < standard_max:
         return "standard"
     return "full"
 

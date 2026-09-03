@@ -49,6 +49,9 @@ reading and the panels grow; when you stop, the full take is analysed as before.
 
     python scripts/live_e2e_client.py clip16k.wav --mode script --script-file rainbow.txt
 
+`.env` sets `ADVICE_MINIMAL_TIER_SEC=3` (upstream 10) so the tone / resonance panels appear after the first
+sentence instead of after 10 s of audio; `ADVICE_STANDARD_TIER_SEC` (30) is the standard/full boundary.
+
 Measured on the desktop: 1.3 to 2.1 s from end of pause to panels updated (Whisper + Engine A +
 pyin in parallel ~0.5 s, sidecar ~0.7 to 1.2 s including its ffmpeg and Praat subprocesses).
 

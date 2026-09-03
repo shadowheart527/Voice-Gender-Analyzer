@@ -116,8 +116,12 @@ export class PhoneTimeline {
 	/**
 	 * Receive Engine C data and render the full timeline.
 	 * @param {object|null} engineC — summary.engine_c from the API response
+	 * @param {{ focus?: "start"|"end" }} [opts] — which page to open on.
+	 *   Live mode re-renders after every sentence and wants the newest
+	 *   phones in view, so it passes focus:"end"; batch results open on
+	 *   the first page as before.
 	 */
-	setData(engineC) {
+	setData(engineC, opts = {}) {
 		if (!this._rendered) return;
 		this._resizeObs?.disconnect();
 		this._resizeObs = null;
@@ -227,7 +231,8 @@ export class PhoneTimeline {
 		this._weightBudget = this._computeWeightBudget();
 		this._sentences = groupCharsByWeight(this._chars, { weightBudget: this._weightBudget });
 		this._logDevDiagnostic();
-		this._mountInteractive({ initialSentenceIdx: 0 });
+		const initialSentenceIdx = opts.focus === "end" ? Math.max(0, this._sentences.length - 1) : 0;
+		this._mountInteractive({ initialSentenceIdx });
 
 		// Rebuild pagination when content width crosses a char boundary.
 		const pitchBandEl = timeline.querySelector(".vga-timeline__band--pitch");
