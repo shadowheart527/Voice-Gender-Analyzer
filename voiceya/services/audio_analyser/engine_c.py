@@ -283,12 +283,18 @@ async def analyze_with_sidecar(
     script: str | None = None,
     word_timestamps: list[dict] | None = None,
     total_audio_sec: float = 0.0,
+    fast_only: bool = False,
+    timeout_sec: float | None = None,
 ) -> dict[str, Any] | None:
     """POST one clip + transcript to the sidecar and shape the engine_c summary.
 
     Shared by the batch path (``run_engine_c``, after ASR / script selection)
     and the live path (``voiceya.live.session``, once per sentence).  Never
     raises: any failure returns None so callers degrade to ``engine_c=null``.
+
+    ``fast_only`` asks the sidecar to skip its ~45 s subprocess MFA fallback
+    (live path: a stuck sentence must not block the ones behind it).
+    ``timeout_sec`` overrides ``CFG.engine_c_sidecar_timeout_sec``.
     """
     lang_short = _normalize_lang(language)
 
@@ -304,13 +310,16 @@ async def analyze_with_sidecar(
         headers["X-Engine-C-Token"] = CFG.engine_c_sidecar_token
 
     post_data: dict[str, str] = {"transcript": transcript, "language": language}
+    if fast_only:
+        post_data["fast_only"] = "1"
     if word_timestamps:
         # JSON-encode so multipart/form-data stays flat.  Sidecar parses back
         # to list[dict]; malformed payloads are ignored on that side.
         post_data["word_timestamps_json"] = json.dumps(word_timestamps)
 
     try:
-        async with httpx.AsyncClient(timeout=CFG.engine_c_sidecar_timeout_sec) as client:
+        timeout = timeout_sec if timeout_sec is not None else CFG.engine_c_sidecar_timeout_sec
+        async with httpx.AsyncClient(timeout=timeout) as client:
             resp = await client.post(
                 f"{CFG.engine_c_sidecar_url}/engine_c/analyze",
                 files={"audio": ("audio.wav", audio_bytes, "audio/wav")},

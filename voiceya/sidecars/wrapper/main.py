@@ -571,6 +571,7 @@ async def analyze(
     transcript: str = Form(...),
     language: str = Form("zh-CN"),
     word_timestamps_json: str | None = Form(default=None),
+    fast_only: str | None = Form(default=None),
     x_engine_c_token: str | None = Header(default=None, alias="X-Engine-C-Token"),
 ) -> dict:
     """Run the upstream pipeline on a single audio clip + transcript.
@@ -581,6 +582,11 @@ async def analyze(
       - meanPitch / medianPitch / stdevPitch
       - meanResonance / medianResonance / stdevResonance
       - mean / stdev (F-vectors)
+
+    ``fast_only``: when truthy ("1"), never fall back to the vendored
+    subprocess MFA path — a kalpy failure returns 422 at once.  The live
+    worker sends this because the CLI fallback takes ~45 s and would block
+    every sentence queued behind it; the batch path leaves it unset.
 
     ``word_timestamps_json``: optional JSON-encoded list of
     ``{word, start, end}`` from the worker's ASR.  When present and the chunk
@@ -684,6 +690,12 @@ async def analyze(
                 chunk_tmp,
                 lang,
                 saved_cwd,
+            )
+
+        if data is None and fast_only and fast_only.strip().lower() in ("1", "true", "yes"):
+            raise HTTPException(
+                status_code=422,
+                detail="alignment failed on the fast path (fast_only set, no fallback)",
             )
 
         if data is None:

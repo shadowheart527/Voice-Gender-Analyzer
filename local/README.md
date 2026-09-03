@@ -52,6 +52,10 @@ reading and the panels grow; when you stop, the full take is analysed as before.
 `.env` sets `ADVICE_MINIMAL_TIER_SEC=3` (upstream 10) so the tone / resonance panels appear after the first
 sentence instead of after 10 s of audio; `ADVICE_STANDARD_TIER_SEC` (30) is the standard/full boundary.
 
+The live path sends `fast_only=1` to the sidecar so a sentence the kalpy aligner cannot align fails in
+~0.5 s instead of falling back to the 45 s MFA CLI and blocking every sentence queued behind it (this was
+the "stops updating after a minute" bug on 02 Sep 2026). Per-sentence sidecar timeout is 15 s.
+
 Measured on the desktop: 1.3 to 2.1 s from end of pause to panels updated (Whisper + Engine A +
 pyin in parallel ~0.5 s, sidecar ~0.7 to 1.2 s including its ffmpeg and Praat subprocesses).
 

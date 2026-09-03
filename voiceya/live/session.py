@@ -44,6 +44,9 @@ Language = Literal["zh-CN", "en-US", "fr-FR", "ko-KR"]
 Mode = Literal["free", "script"]
 
 MAX_SESSION_SEC = 180.0
+# Per-sentence sidecar budget.  A healthy sentence takes ~1 s; anything past
+# this is a stuck aligner and must not hold up the sentences behind it.
+SENTENCE_SIDECAR_TIMEOUT_SEC = 15.0
 
 
 class LiveSession:
@@ -208,6 +211,8 @@ class LiveSession:
             script=None,
             word_timestamps=None,
             total_audio_sec=end - start,
+            fast_only=True,
+            timeout_sec=SENTENCE_SIDECAR_TIMEOUT_SEC,
         )
         timings["sidecar_ms"] = int((time.monotonic() - t_stage) * 1000)
         if not ec:
