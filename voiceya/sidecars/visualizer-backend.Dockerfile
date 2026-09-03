@@ -14,7 +14,7 @@
 #   - sidecar-friendly: no /tmp/gender-voice-rec leak, settings.recordings
 #     points at an ephemeral per-request path.
 
-FROM mambaorg/micromamba:1.5.8
+FROM docker.io/mambaorg/micromamba:1.5.8
 
 USER root
 
@@ -22,8 +22,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ffmpeg sox praat libmagic1 ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
+# MFA is pinned: 3.4.2 removed the ``language=`` kwarg from
+# ``tokenize_utterance_text`` (online/alignment.py), which makes
+# wrapper/preloaded_aligner.py's kalpy fast path raise on every request and
+# silently fall back to the ~45 s subprocess MFA CLI.  Symptom in the logs:
+# ``warmup FAILED: tokenize_utterance_text() got an unexpected keyword
+# argument 'language'``.  Bump only together with the wrapper.
 RUN micromamba create -y -n mfa -c conda-forge \
-        python=3.11 montreal-forced-aligner \
+        python=3.11 "montreal-forced-aligner=3.4.1" \
     && micromamba clean -a -y
 
 ENV MAMBA_ROOT_PREFIX=/opt/conda

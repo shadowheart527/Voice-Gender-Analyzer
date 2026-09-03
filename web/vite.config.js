@@ -19,7 +19,9 @@ export default defineConfig({
 		host: "::",
 		proxy: {
 			"/api": {
-				target: "http://127.0.0.1:8080",
+				// BACKEND_DEV_PORT mirrors voiceya/__main__.py + run_app.py so a
+				// non-default backend port works end to end in dev.
+				target: `http://127.0.0.1:${process.env.BACKEND_DEV_PORT || "8080"}`,
 				changeOrigin: true,
 			},
 		},
