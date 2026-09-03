@@ -226,8 +226,6 @@ async def run_engine_c(
         # Deferred imports — keep module-load time near zero when feature is off
         # (ASR is the biggest hit; only pay it for free-speech mode).
         try:
-            import httpx  # noqa: PLC0415
-
             if lang_short == "en":
                 from voiceya.services.audio_analyser.engine_c_asr_en import (  # noqa: PLC0415
                     transcribe_en,
@@ -264,6 +262,35 @@ async def run_engine_c(
         if not transcript.strip():
             logger.info("Engine C skipped: empty transcript (noise / non-speech)")
             return None
+
+    return await analyze_with_sidecar(
+        audio_bytes,
+        transcript,
+        language=language,
+        mode=mode,
+        script=script,
+        word_timestamps=word_timestamps,
+        total_audio_sec=sum(r.duration for r in analyse_results),
+    )
+
+
+async def analyze_with_sidecar(
+    audio_bytes: bytes,
+    transcript: str,
+    *,
+    language: str = "zh-CN",
+    mode: Literal["free", "script"] = "free",
+    script: str | None = None,
+    word_timestamps: list[dict] | None = None,
+    total_audio_sec: float = 0.0,
+) -> dict[str, Any] | None:
+    """POST one clip + transcript to the sidecar and shape the engine_c summary.
+
+    Shared by the batch path (``run_engine_c``, after ASR / script selection)
+    and the live path (``voiceya.live.session``, once per sentence).  Never
+    raises: any failure returns None so callers degrade to ``engine_c=null``.
+    """
+    lang_short = _normalize_lang(language)
 
     # httpx is needed in both branches — import here so script mode also has it.
     try:
@@ -322,7 +349,6 @@ async def run_engine_c(
         if s is not None and e is not None and e > s
     ]
 
-    total_audio_sec = sum(r.duration for r in analyse_results)
     alignment_confidence = _alignment_confidence(phones, transcript, total_audio_sec, lang_short)
 
     median_resonance = _safe_float(data.get("medianResonance"))

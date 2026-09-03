@@ -9,6 +9,8 @@ Set up 02 Sep 2026. Everything below is what differs from the upstream README.
     local/stop.sh       # stops the two podman containers (Ctrl+C the start.sh terminal first)
 
 Backend is on http://127.0.0.1:8090 (not 8080: Steam's webhelper owns 8080). Vite proxies `/api` to it.
+The sentence-live worker (`python -m voiceya.live`) is on 127.0.0.1:8091; Vite proxies the `/api/live`
+WebSocket to it. `run_app.py` starts all four processes (backend, worker, live, vite).
 
 ## What was changed / created
 
@@ -38,6 +40,17 @@ Backend is on http://127.0.0.1:8090 (not 8080: Steam's webhelper owns 8080). Vit
 - Engine C free mode (Whisper ASR -> MFA -> Praat): 188 phones, resonance per vowel, 3.6 s wall time after the MFA pin (61 s before).
 - Engine C script mode: 188 phones, 3.5 s (52 s before).
 - UI renders at 127.0.0.1:5173 with no console errors.
+
+## Sentence-live mode (added 03 Sep 2026)
+
+Tick "Live preview" in the record panel. Each pause-delimited sentence is analysed while you keep
+reading and the panels grow; when you stop, the full take is analysed as before. Design and protocol:
+`docs/plans/sentence_live_mode.md`. Without a browser:
+
+    python scripts/live_e2e_client.py clip16k.wav --mode script --script-file rainbow.txt
+
+Measured on the desktop: 1.3 to 2.1 s from end of pause to panels updated (Whisper + Engine A +
+pyin in parallel ~0.5 s, sidecar ~0.7 to 1.2 s including its ffmpeg and Praat subprocesses).
 
 ## Known wrinkles
 

@@ -126,7 +126,50 @@ def compute_f0_panel(y: np.ndarray, sr: int, recording_duration_sec: float) -> d
         )
         return panel
 
-    voiced_f0 = f0[voiced_mask]
+    return panel_from_voiced_f0(f0[voiced_mask], sr, recording_duration_sec)
+
+
+def voiced_f0_values(y: np.ndarray, sr: int) -> np.ndarray:
+    """pyin[60-250] over ``y``; return only the voiced F0 samples (Hz).
+
+    Used by the live path, which runs pyin per sentence and concatenates the
+    voiced values across the session before calling ``panel_from_voiced_f0``.
+    """
+    if y is None or len(y) < FRAME_LENGTH:
+        return np.zeros(0, dtype=np.float64)
+    try:
+        f0, voiced_flag, _voiced_prob = librosa.pyin(
+            y,
+            fmin=PYIN_FMIN,
+            fmax=PYIN_FMAX,
+            sr=sr,
+            frame_length=FRAME_LENGTH,
+            hop_length=HOP_LENGTH,
+        )
+    except Exception as e:  # pragma: no cover
+        logger.warning("pyin[60-250] failed: %s", e)
+        return np.zeros(0, dtype=np.float64)
+    voiced_mask = voiced_flag & ~np.isnan(f0)
+    return np.asarray(f0[voiced_mask], dtype=np.float64)
+
+
+def panel_from_voiced_f0(voiced_f0: np.ndarray, sr: int, recording_duration_sec: float) -> dict:
+    """Build the f0_panel from voiced pyin samples (hop = HOP_LENGTH)."""
+    panel: dict = {
+        "median_hz": None,
+        "p25_hz": None,
+        "p75_hz": None,
+        "voiced_duration_sec": 0.0,
+        "range_zone_key": None,
+        "reliability": "insufficient_voiced",
+    }
+    voiced_dur = float(len(voiced_f0) * HOP_LENGTH / sr)
+    panel["voiced_duration_sec"] = round(voiced_dur, 2)
+    if voiced_dur < VOICED_DUR_FLOOR_S:
+        panel["reliability"] = (
+            "short_recording" if recording_duration_sec < 10.0 else "insufficient_voiced"
+        )
+        return panel
     median_hz = float(np.median(voiced_f0))
     panel.update(
         median_hz=round(median_hz, 1),

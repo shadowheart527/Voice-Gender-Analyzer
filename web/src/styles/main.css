@@ -1339,7 +1339,9 @@ body::-webkit-scrollbar {
 	line-height: 1;
 	cursor: pointer;
 	opacity: 0.7;
-	transition: background var(--transition), color var(--transition);
+	transition:
+		background var(--transition),
+		color var(--transition);
 }
 .grid-stack-item[data-edit-armed="true"] .block-hide-btn {
 	display: inline-flex;
@@ -2716,6 +2718,25 @@ body::-webkit-scrollbar {
 .record-mode-label {
 	font-size: 0.78rem;
 	color: var(--text-secondary);
+}
+.record-live-toggle {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 0.8rem;
+	color: var(--text-primary);
+	cursor: pointer;
+	user-select: none;
+}
+.record-live-toggle input {
+	accent-color: var(--accent);
+	margin: 0;
+}
+.recorder-live-status {
+	font-size: 0.78rem;
+	color: var(--text-secondary);
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
 }
 .record-script-panel {
 	padding: 12px 14px;

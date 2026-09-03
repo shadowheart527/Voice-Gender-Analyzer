@@ -1,6 +1,6 @@
 import { t } from "./i18n.js";
 
-export function setupRecorder({ onFile, onError, onTabActivate }) {
+export function setupRecorder({ onFile, onError, onTabActivate, onStreamStart, onStreamStop }) {
 	if (!navigator.mediaDevices?.getUserMedia) {
 		// No mic API: hide the record tab and force the upload tab to be active
 		// (record is the default for users with mics; without a mic we silently
@@ -72,6 +72,13 @@ export function setupRecorder({ onFile, onError, onTabActivate }) {
 		_mr.addEventListener("error", (e) => _cleanup(t("recorder.recordError", { msg: e.error?.message ?? "" })));
 		_mr.start(200);
 		_startViz(_stream);
+		// Sentence-live mode taps the same MediaStream through an AudioWorklet;
+		// main.js decides whether to open a live session for this take.
+		try {
+			onStreamStart?.(_stream);
+		} catch (err) {
+			onError(String(err?.message ?? err));
+		}
 
 		idleUI.hidden = true;
 		activeUI.hidden = false;
@@ -89,6 +96,7 @@ export function setupRecorder({ onFile, onError, onTabActivate }) {
 		clearInterval(_timer);
 		_timer = null;
 		_stopViz();
+		onStreamStop?.();
 		_stream.getTracks().forEach((t) => t.stop());
 		_stream = null;
 		_mr.stop();
@@ -115,6 +123,7 @@ export function setupRecorder({ onFile, onError, onTabActivate }) {
 		clearInterval(_timer);
 		_timer = null;
 		_stopViz();
+		onStreamStop?.();
 		_stream?.getTracks().forEach((t) => t.stop());
 		_stream = null;
 		_mr = null;

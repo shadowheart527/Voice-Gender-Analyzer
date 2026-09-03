@@ -30,6 +30,7 @@ WEB_DIR = BASE_DIR / "web"
 # 代理 / 安全软件抢占，表现就是浏览器收到假 404。
 VITE_URL = "http://127.0.0.1:5173"
 BACKEND_PORT = int(os.environ.get("BACKEND_DEV_PORT", "8080"))
+LIVE_PORT = int(os.environ.get("LIVE_DEV_PORT", "8091"))
 
 
 def _check_port_free(port: int) -> None:
@@ -195,6 +196,7 @@ def main() -> None:
         subprocess.run((npm_cmd, "install"), check=True, cwd=WEB_DIR)
 
     _check_port_free(BACKEND_PORT)
+    _check_port_free(LIVE_PORT)
 
     group = ProcGroup(env)
 
@@ -216,7 +218,12 @@ def main() -> None:
         ),
     )
 
-    # 3) Vite —— 走 pnpm/npm，具体命令在 web/package.json 的 dev 脚本里
+    # 3) Live worker —— sentence-live WebSocket (/api/live), own process so the
+    #    API stays TF-free and taskiq is not involved in stateful sessions.
+    #    Loads Engine A + warms Whisper itself; Vite proxies /api/live here.
+    group.spawn("live", (py, "-m", "voiceya.live"))
+
+    # 4) Vite —— 走 pnpm/npm，具体命令在 web/package.json 的 dev 脚本里
     group.spawn("frontend", (npm_cmd, "run", "dev"), cwd=WEB_DIR)
 
     # 信号：Ctrl+C / kill 都走同一套收尾逻辑
@@ -233,7 +240,7 @@ def main() -> None:
     except Exception as e:
         print(f"  ⚠️ 无法自动打开浏览器: {e}")
 
-    print("\n✅ 三端已全部启动，按 Ctrl+C 退出。\n")
+    print("\n✅ 四端已全部启动（backend / worker / live / vite），按 Ctrl+C 退出。\n")
     try:
         group.watch()
     except KeyboardInterrupt:

@@ -416,6 +416,18 @@
 								</button>
 							</div>
 						</div>
+						<label
+							id="record-live-toggle-wrap"
+							class="record-live-toggle"
+							data-i18n-title="live.toggleTip"
+							title="每次停顿后立即分析这一句；录完仍会对整段做完整分析。"
+						>
+							<input type="checkbox" id="record-live-toggle" />
+							<span data-i18n="live.toggle">实时预览</span>
+							<span id="record-live-unavailable" class="hint-muted" data-i18n="live.unavailable" hidden>
+								实时分析服务未连接
+							</span>
+						</label>
 						<div id="record-script-panel" class="record-script-panel">
 							<div class="record-script-header">
 								<label class="record-script-picker-label" for="record-script-select">
@@ -481,6 +493,7 @@
 						<div class="recorder-active-ui" id="recorder-active-ui" hidden>
 							<span class="recorder-dot" aria-hidden="true"></span>
 							<span class="recorder-timer" id="recorder-timer">0:00</span>
+							<span id="recorder-live-status" class="recorder-live-status" aria-live="polite" hidden></span>
 							<canvas id="recorder-waveform" class="recorder-waveform" aria-hidden="true"></canvas>
 							<button
 								class="recorder-stop-btn"

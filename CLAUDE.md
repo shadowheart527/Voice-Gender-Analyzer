@@ -14,6 +14,9 @@ python -m voiceya            # API 进程，127.0.0.1:8080
 # 仅 worker
 python -m taskiq worker voiceya.taskiq:broker voiceya.tasks.analyser --workers 1 --log-level INFO
 
+# 仅 live worker（sentence-live WebSocket，/api/live，默认 127.0.0.1:8091；run_app.py 会一起拉起）
+python -m voiceya.live
+
 # 前端开发
 pnpm --filter ./web run dev
 pnpm --filter ./web run build   # 生产构建到 web/dist/
@@ -29,6 +32,9 @@ pnpm --filter ./web run fmt:fix     # prettier --write
 # 测试（无 pytest 依赖，直接 python 跑）
 python tests/test_chunker.py           # 纯 stdlib，无音频依赖
 python tests/test_multichunk_merge.py  # 依赖 cmudict.txt，需先 cd visualizer-backend 或测试脚本自己 chdir
+python tests/test_live_vad.py          # sentence-live 分句 VAD（纯 numpy）
+python tests/test_live_script_cursor.py # sentence-live 稿件游标匹配（纯 stdlib）
+python scripts/live_e2e_client.py clip.wav --mode script --script-file rainbow.txt  # 需 live worker + sidecar 在跑
 
 # Engine C sidecar 本地镜像（独立容器）
 docker build -f voiceya/sidecars/visualizer-backend.Dockerfile -t voiceya-engine-c:dev .
@@ -78,6 +84,15 @@ advice_v2 与 do_statics 共用一次结果）；`summary.overall_gender_score` 
 
 Engine C 默认关闭（`ENGINE_C_ENABLED=false`）；开启需同时起 sidecar：
 `docker compose --profile engine-c up -d --build`。失败/不可达时 `summary.engine_c = null`，不影响 Engine A 结果。
+
+## Sentence-live（实时逐句）
+
+`voiceya/live/`：独立进程（`python -m voiceya.live`，`LIVE_DEV_PORT` 默认 8091），WebSocket `/api/live`。
+浏览器 AudioWorklet 推 16 kHz int16 PCM → `vad.SentenceSegmenter` 按停顿切句 → 每句并行跑
+Whisper + Engine A + pyin，script 模式用 `script_cursor.ScriptCursor` 把 ASR 结果映射回稿件原文，
+再调 `engine_c.analyze_with_sidecar()` → `session.LiveSession._build_result()` 拼出与
+`/analyze-voice` 完全同形的 result 推给前端（`renderFromSummary` 直接复用）。录音停止后前端自动
+跑一次完整 batch 分析替换预览。设计文档：`docs/plans/sentence_live_mode.md`。
 
 ## Advice v2 输出 schema
 

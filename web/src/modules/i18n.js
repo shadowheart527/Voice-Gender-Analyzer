@@ -128,6 +128,17 @@ const DICT = {
 		"record.scriptCustomPlaceholder": "在这里写下你想朗读的稿子……",
 		"record.customHint": "这段文字会直接喂给对齐器；请确保和「分析语言」一致，否则对不齐。",
 		"record.scriptCustomEmpty": "请先在自定义稿件里填一些文字。",
+		"live.toggle": "实时预览",
+		"live.toggleTip": "每次停顿后立即分析这一句；录完仍会对整段做完整分析。",
+		"live.unavailable": "实时分析服务未连接，将按普通方式录制。",
+		"live.fileName": "实时录音",
+		"live.status.connecting": "正在连接…",
+		"live.status.listening": "聆听中…",
+		"live.status.speaking": "说话中…",
+		"live.status.analysing": "正在分析第 {n} 句…",
+		"live.status.sentences": "已分析 {n} 句 · 最近 {ms} ms",
+		"live.status.failed": "第 {n} 句分析失败",
+		"live.maxLength": "已达到实时分析的最长时长。",
 
 		"stats.title": "声音占比",
 		"stats.subtitle": "仅人声片段（音乐 / 静音不计入）",
@@ -538,6 +549,17 @@ const DICT = {
 		"record.customHint":
 			"We feed this text straight to the aligner — make sure it matches the analysis language or it won't line up.",
 		"record.scriptCustomEmpty": "Type some text in the custom script first.",
+		"live.toggle": "Live preview",
+		"live.toggleTip": "Analyse each sentence as soon as you pause; the full take is still analysed when you stop.",
+		"live.unavailable": "Live analysis service not reachable; recording normally.",
+		"live.fileName": "Live session",
+		"live.status.connecting": "Connecting…",
+		"live.status.listening": "Listening…",
+		"live.status.speaking": "Speaking…",
+		"live.status.analysing": "Analysing sentence {n}…",
+		"live.status.sentences": "{n} sentences · last {ms} ms",
+		"live.status.failed": "Sentence {n} failed",
+		"live.maxLength": "Maximum live session length reached.",
 
 		"stats.title": "Distribution",
 		"stats.subtitle": "Within voiced speech only — music / silence excluded",
@@ -965,6 +987,18 @@ const DICT = {
 		"record.customHint":
 			"Ce texte est transmis tel quel à l'aligneur — assurez-vous qu'il correspond à la langue d'analyse, sinon l'alignement échouera.",
 		"record.scriptCustomEmpty": "Saisissez d'abord du texte dans le champ personnalisé.",
+		"live.toggle": "Aperçu en direct",
+		"live.toggleTip":
+			"Analyse chaque phrase dès que vous marquez une pause ; la prise complète est encore analysée à l'arrêt.",
+		"live.unavailable": "Service d'analyse en direct injoignable ; enregistrement normal.",
+		"live.fileName": "Session en direct",
+		"live.status.connecting": "Connexion…",
+		"live.status.listening": "À l'écoute…",
+		"live.status.speaking": "Parole en cours…",
+		"live.status.analysing": "Analyse de la phrase {n}…",
+		"live.status.sentences": "{n} phrases · dernière {ms} ms",
+		"live.status.failed": "Échec de la phrase {n}",
+		"live.maxLength": "Durée maximale de la session en direct atteinte.",
 
 		"stats.title": "Répartition",
 		"stats.subtitle": "Uniquement segments parlés — musique / silence exclus",
@@ -1345,7 +1379,8 @@ const DICT = {
 		"upload.title": "오디오 파일을 여기로 끌어다 놓으세요",
 		"upload.or": "또는",
 		"upload.hint": "MP3 · WAV · OGG · M4A · FLAC · 최대 {mb} MB / {min} 분",
-		"upload.privacy": "서버에 오디오나 분석 결과를 저장하지 않습니다. 기록은 브라우저에만 보관되며 언제든 지울 수 있습니다.",
+		"upload.privacy":
+			"서버에 오디오나 분석 결과를 저장하지 않습니다. 기록은 브라우저에만 보관되며 언제든 지울 수 있습니다.",
 		"upload.audioUnavailable": "원본 오디오를 사용할 수 없습니다 (페이지 새로고침으로 사라짐)",
 
 		"action.cancel": "취소",
@@ -1396,6 +1431,17 @@ const DICT = {
 		"record.scriptCustomPlaceholder": "소리 내어 읽을 텍스트를 여기에 입력하세요…",
 		"record.customHint": "이 텍스트는 정렬기로 그대로 전달됩니다 — 「분석 언어」와 일치해야 정렬이 성공합니다.",
 		"record.scriptCustomEmpty": "사용자 지정 원고 칸에 먼저 텍스트를 입력하세요.",
+		"live.toggle": "실시간 미리보기",
+		"live.toggleTip": "잠시 멈출 때마다 그 문장을 바로 분석합니다. 녹음을 마치면 전체를 다시 분석합니다.",
+		"live.unavailable": "실시간 분석 서비스에 연결할 수 없어 일반 녹음으로 진행합니다.",
+		"live.fileName": "실시간 세션",
+		"live.status.connecting": "연결 중…",
+		"live.status.listening": "듣는 중…",
+		"live.status.speaking": "말하는 중…",
+		"live.status.analysing": "{n}번째 문장 분석 중…",
+		"live.status.sentences": "{n}문장 분석됨 · 최근 {ms} ms",
+		"live.status.failed": "{n}번째 문장 분석 실패",
+		"live.maxLength": "실시간 세션 최대 길이에 도달했습니다.",
 
 		"stats.title": "음성 비율",
 		"stats.subtitle": "발화 구간만 (음악 / 무음 제외)",
@@ -1491,7 +1537,8 @@ const DICT = {
 		"fallback.tipRead": "10~30초 분량의 단락을 읽으세요",
 		"fallback.tipMicDist": "마이크와 입 사이 거리를 15~25 cm로 유지하세요",
 		"fallback.stillVisible": "아래의 파형과 신경망 추정은 그대로 확인할 수 있습니다.",
-		"fallback.lowPhone": "음소 {n}개만 검출됨 — 통계가 불안정할 수 있습니다. 더 안정적인 수치를 보려면 10초 이상 연속 발화로 녹음하세요.",
+		"fallback.lowPhone":
+			"음소 {n}개만 검출됨 — 통계가 불안정할 수 있습니다. 더 안정적인 수치를 보려면 10초 이상 연속 발화로 녹음하세요.",
 		"fallback.noSpeechTitle": "음성 미검출",
 		"fallback.noSpeechLead": "오디오에서 분석할 만한 음성을 찾지 못했습니다. 순수 배경음이나 악기음이 아닐까요?",
 		"fallback.noSpeechHint": "말소리가 담긴 클립으로 다시 녹음해 주세요.",
@@ -1504,7 +1551,8 @@ const DICT = {
 		"legend.infoAria": "팔레트 정보",
 		"legend.sci1":
 			"<strong>공명 팔레트</strong>의 0.5는 <strong>여성 기준 중앙값</strong>입니다 (남녀의 중간선이 아닙니다 — 실측에서 남성 median ≈ 0.35–0.49, 여성 median ≈ 0.65–0.81로 언어에 따라 다릅니다). 여성 임계값 = <strong>{res}</strong>.",
-		"legend.sci2": "이 임계값은 AISHELL-3 코퍼스 (134 남 + 134 여)에서 10-fold 교차검증한 결과이며, 정확도는 <strong>0.900</strong>입니다.",
+		"legend.sci2":
+			"이 임계값은 AISHELL-3 코퍼스 (134 남 + 134 여)에서 10-fold 교차검증한 결과이며, 정확도는 <strong>0.900</strong>입니다.",
 		"legend.sci3":
 			"<strong>음높이 기준:</strong> {neutral} Hz는 남성 상한 / 여성 하한 경계, {fem} Hz는 음성 작업에서 흔히 쓰이는 여성 지각 임계값입니다.",
 		"legend.sci4":
@@ -1542,11 +1590,16 @@ const DICT = {
 			"⚠ NN 점수는 올라갔지만 다수 모음의 공명 디테일이 떨어졌습니다 — 음높이만 올려 공명 조정을 대체했을 수 있습니다. 권장: 턱을 풀고 연구개를 들어 올리며 /a/ /o/ 위주로 연습.",
 
 		"disclosure.title": "시작하기 전에",
-		"disclosure.intro": "이 도구는 음성의 음향 지표 몇 가지를 측정해 연습 참고로 제공합니다. 진단도, 평가도, 전문 교사의 대체도 아닙니다.",
-		"disclosure.point.measurement": "표시되는 것은 측정값이지 지시 사항이 아닙니다 — 어떻게 연습할지는 본인에게 달려 있습니다.",
-		"disclosure.point.model_judgment": "수치는 모델의 판단이며 사람의 청감과 항상 일치하지는 않습니다. 어떤 목소리에서는 모델이 틀리기도 합니다.",
-		"disclosure.point.not_teacher": "voice teacher / SLP를 대체하지 않습니다 — 이 수치만으로는 기술의 세부를 읽어낼 수 없지만 선생님은 가능합니다.",
-		"disclosure.point.dysphoria": "지금 감정이 불안정하다면, 결과가 더 불편하게 느껴질 수 있습니다. 잠시 닫아두고 상태가 좋아진 뒤 돌아와도 괜찮습니다.",
+		"disclosure.intro":
+			"이 도구는 음성의 음향 지표 몇 가지를 측정해 연습 참고로 제공합니다. 진단도, 평가도, 전문 교사의 대체도 아닙니다.",
+		"disclosure.point.measurement":
+			"표시되는 것은 측정값이지 지시 사항이 아닙니다 — 어떻게 연습할지는 본인에게 달려 있습니다.",
+		"disclosure.point.model_judgment":
+			"수치는 모델의 판단이며 사람의 청감과 항상 일치하지는 않습니다. 어떤 목소리에서는 모델이 틀리기도 합니다.",
+		"disclosure.point.not_teacher":
+			"voice teacher / SLP를 대체하지 않습니다 — 이 수치만으로는 기술의 세부를 읽어낼 수 없지만 선생님은 가능합니다.",
+		"disclosure.point.dysphoria":
+			"지금 감정이 불안정하다면, 결과가 더 불편하게 느껴질 수 있습니다. 잠시 닫아두고 상태가 좋아진 뒤 돌아와도 괜찮습니다.",
 		"disclosure.resources.heading": "추천 자료",
 		"disclosure.resources.transvoice_note": "— Zheanna Erose 채널, TVT 커뮤니티에서 가장 자주 추천하는 입문 강좌.",
 		"disclosure.resources.sumian_note": "— Sumian 채널, resonance / pitch / weight 등 기술을 폭넓게 다룸.",
@@ -1633,7 +1686,8 @@ const DICT = {
 		"help.flow.s3.note":
 			"Engine C · 자유 모드는 ASR (FunASR / faster-whisper)을 돌리고 따라 읽기 모드는 원고를 그대로 사용; Montreal Forced Aligner가 음소 단위로 정렬",
 		"help.flow.s4.h": "포먼트 + z-score",
-		"help.flow.s4.note": "Praat이 F1 / F2 / F3 추출 → z-score를 결합해 공명 값으로; 전체 집계는 「모음별 median 후 다시 중앙값」",
+		"help.flow.s4.note":
+			"Praat이 F1 / F2 / F3 추출 → z-score를 결합해 공명 값으로; 전체 집계는 「모음별 median 후 다시 중앙값」",
 		"help.flow.s5.h": "3패널 렌더링",
 		"help.flow.s5.note": "파형 · 가운데 샌드위치 타임라인 · 오른쪽 전체 평균",
 		"help.how.h": "사용 방법",
@@ -1649,7 +1703,8 @@ const DICT = {
 		"help.heatmap.pitchDD":
 			"음소 내 F0 (pyin, 60–250 Hz). 청감상 가장 알아채기 쉽지만 유일한 단서는 아닙니다 — F0만 올리고 공명이 따라 올라오지 않으면 보통 「쥐어짠 소리」로 들립니다. 두 히트맵을 함께 보는 것이 F0만 보는 것보다 유용합니다.",
 		"help.baseline.h": "기준 분포",
-		"help.baseline.note": "남녀 분포는 크게 겹칩니다 — 수치가 어느 쪽에 가깝다고 곧 판정이 되지는 않습니다. calibration_v1, 각 언어 ~90개 시스 녹음 기준.",
+		"help.baseline.note":
+			"남녀 분포는 크게 겹칩니다 — 수치가 어느 쪽에 가깝다고 곧 판정이 되지는 않습니다. calibration_v1, 각 언어 ~90개 시스 녹음 기준.",
 		"help.baseline.col.lang": "언어",
 		"help.baseline.col.male": "남성 중앙값 (p25–p75)",
 		"help.baseline.col.female": "여성 중앙값 (p25–p75)",
@@ -1659,7 +1714,8 @@ const DICT = {
 		"help.aggregate.f0.h": "F0",
 		"help.aggregate.f0.body": "pyin 중앙값 + p25 / p75",
 		"help.aggregate.resonance.h": "공명",
-		"help.aggregate.resonance.body": "모음별 median 후 다시 중앙값 (모음 등가중치로 빈번한 모음이 전체를 지배하지 않도록)",
+		"help.aggregate.resonance.body":
+			"모음별 median 후 다시 중앙값 (모음 등가중치로 빈번한 모음이 전체를 지배하지 않도록)",
 		"help.aggregate.formant.h": "F1 / F2 / F3",
 		"help.aggregate.formant.body": "유효 프레임 평균",
 		"help.qa.h": "FAQ",

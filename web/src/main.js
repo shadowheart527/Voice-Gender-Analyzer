@@ -15,6 +15,7 @@ import {
 } from "./modules/export-import.js";
 import { isTimelineEnabled } from "./modules/feature-flag.js";
 import { applyStaticDom, getLang, onLangChange, setLang, t } from "./modules/i18n.js";
+import { probeLive, startLiveSession } from "./modules/live-session.js";
 import { clearMetricsPanel } from "./modules/metrics-panel.js";
 import { PhoneTimeline } from "./modules/phone-timeline.js";
 import { setupRecorder } from "./modules/recorder.js";
@@ -116,6 +117,131 @@ let _scriptId = "";
 let _customScriptText = "";
 let _engineCEnabled = false;
 let _activeInputTab = "record";
+
+// ─── Sentence-live mode ──────────────────────────────────────────
+// While recording, the same MediaStream is streamed to the live worker
+// (voiceya.live) which analyses each pause-delimited sentence and sends a
+// batch-shaped result back; we render it through renderFromSummary exactly
+// like a finished analysis.  When the recording stops, the normal upload +
+// analyze flow runs on the whole take so history / export are unchanged.
+let _liveEnabled = true; // user toggle (persisted)
+let _liveAvailable = false; // /api/live/healthz reachable
+let _liveSession = null; // { stop() } while a session is open
+let _liveWasActive = false; // auto-run the batch analysis on the finished take
+
+function _setLiveStatus(text) {
+	const el = $("recorder-live-status");
+	if (!el) return;
+	if (!text) {
+		el.hidden = true;
+		el.textContent = "";
+		return;
+	}
+	el.textContent = text;
+	el.hidden = false;
+}
+
+function _liveIsOn() {
+	return _engineCEnabled && _liveAvailable && _liveEnabled && _activeInputTab === "record";
+}
+
+async function _initLiveToggle() {
+	const toggle = $("record-live-toggle");
+	const unavailable = $("record-live-unavailable");
+	if (!toggle) return;
+	_liveEnabled = localStorage.getItem("record-live") !== "0";
+	toggle.checked = _liveEnabled;
+	toggle.addEventListener("change", () => {
+		_liveEnabled = toggle.checked;
+		localStorage.setItem("record-live", _liveEnabled ? "1" : "0");
+	});
+	const health = await probeLive();
+	_liveAvailable = !!(health && health.ok && health.engine_c);
+	toggle.disabled = !_liveAvailable;
+	if (unavailable) unavailable.hidden = _liveAvailable;
+}
+
+async function _startLive(stream) {
+	if (!_liveIsOn()) return;
+	const recordOpts = _getRecordOptions();
+	if (recordOpts.mode === "script" && !recordOpts.script) {
+		showToast(t("record.scriptCustomEmpty"), "error");
+		return;
+	}
+	cancelAnalysis();
+	analysisData = null;
+	currentFile = null;
+	resetResults();
+	clearMetricsPanel();
+	if (_phoneTimeline) {
+		_phoneTimeline.destroy();
+		_phoneTimeline = null;
+	}
+	setPhase("live");
+	_setLiveStatus(t("live.status.connecting"));
+	try {
+		_liveSession = await startLiveSession({
+			stream,
+			language: getLang(),
+			mode: recordOpts.mode,
+			script: recordOpts.script,
+			onEvent: _onLiveEvent,
+			onError: (msg) => showToast(msg, "error"),
+		});
+		_liveWasActive = true;
+	} catch (err) {
+		_liveSession = null;
+		_setLiveStatus(null);
+		showToast(t("live.unavailable"), "error");
+		console.warn("[live] start failed", err);
+	}
+}
+
+function _onLiveEvent(ev) {
+	switch (ev.type) {
+		case "ready":
+			_setLiveStatus(t("live.status.listening"));
+			break;
+		case "vad":
+			_setLiveStatus(t(ev.speaking ? "live.status.speaking" : "live.status.listening"));
+			break;
+		case "sentence_queued":
+			_setLiveStatus(t("live.status.analysing", { n: ev.index + 1 }));
+			break;
+		case "summary": {
+			const data = ev.result;
+			if (!data?.summary) break;
+			analysisData = data;
+			_updateClassifyModeSwitcher();
+			renderFromSummary(data);
+			if (_phoneTimeline) _phoneTimeline.setData(data.summary.engine_c ?? null);
+			_setLiveStatus(
+				t("live.status.sentences", {
+					n: data.summary.live?.sentences ?? ev.index + 1,
+					ms: ev.sentence?.latency_ms ?? "–",
+				}),
+			);
+			break;
+		}
+		case "sentence_failed":
+			_setLiveStatus(t("live.status.failed", { n: ev.index + 1 }));
+			break;
+		default:
+			break;
+	}
+}
+
+async function _stopLive() {
+	const session = _liveSession;
+	_liveSession = null;
+	if (!session) return;
+	try {
+		await session.stop();
+	} catch (err) {
+		console.warn("[live] stop failed", err);
+	}
+	_setLiveStatus(null);
+}
 
 function _getScriptList() {
 	return scriptsForLang(getLang());
@@ -252,6 +378,7 @@ function _initRecordMode(engineCEnabled) {
 	_populateScriptSelect();
 	_applyRecordMode();
 	_renderCurrentScript();
+	_initLiveToggle();
 
 	$("record-mode-switcher")?.addEventListener("click", (e) => {
 		const btn = e.target.closest(".classify-mode-btn");
@@ -593,8 +720,19 @@ function _stopDuckFake(success = true) {
 function setPhase(next) {
 	phase = next;
 
-	$("upload-section").hidden = next !== "idle";
+	// "live": recorder stays visible (stop button) while the result panels
+	// fill in sentence by sentence; there is no file / waveform yet.
+	const live = next === "live";
+	$("upload-section").hidden = next !== "idle" && !live;
 	$("player-section").hidden = next === "idle";
+	const wfc = $("waveform-container");
+	if (wfc) wfc.hidden = live;
+	const controls = document.querySelector("#player-section .controls");
+	if (controls) controls.hidden = live;
+	if (live) $("file-name").textContent = t("live.fileName");
+	// While a live take is open the only way out is the recorder's Stop.
+	const changeBtn = $("change-file-btn");
+	if (changeBtn) changeBtn.hidden = live;
 
 	// Export button only makes sense once an analysis result exists.
 	const exportBtn = $("export-result-btn");
@@ -634,6 +772,15 @@ function setPhase(next) {
 				_phoneTimeline.setLoading();
 			}
 		}
+	} else if (next === "live") {
+		if (_timelineEnabled) {
+			const root = $("phone-timeline-root");
+			if (root) {
+				root.hidden = false;
+				_phoneTimeline = new PhoneTimeline({ container: root, wavesurfer: null });
+				_phoneTimeline.setLoading();
+			}
+		}
 	} else if (next === "results") {
 		_finishDuck();
 	} else if (!_batchInProgress) {
@@ -660,9 +807,14 @@ function onFileSelected(file) {
 	setPhase("loaded");
 	$("waveform-loading").style.display = "flex";
 
+	// After a live take, run the full batch analysis automatically so the
+	// canonical result (and history entry) replaces the sentence-by-sentence
+	// preview without another click.
+	const autoAnalyze = _liveWasActive;
+	_liveWasActive = false;
 	initWaveform(file, {
 		onReady: (_dur) => {
-			/* controls already enabled in waveform.js */
+			if (autoAnalyze) $("analyze-btn")?.click();
 		},
 	});
 }
@@ -786,6 +938,12 @@ async function initUploaders() {
 	setupRecorder({
 		onFile: onFileSelected,
 		onError: (msg) => showToast(msg, "error"),
+		onStreamStart: (stream) => {
+			_startLive(stream);
+		},
+		onStreamStop: () => {
+			_stopLive();
+		},
 		onTabActivate: (tab) => {
 			_activeInputTab = tab;
 			_syncRecordModePanelVisibility();

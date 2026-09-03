@@ -18,6 +18,13 @@ export default defineConfig({
 		// 注：`host: true` 只等价 0.0.0.0，依然 IPv4-only，解不了这个问题。
 		host: "::",
 		proxy: {
+			// Sentence-live WebSocket + its healthz live in a separate worker
+			// process (voiceya.live).  Must precede the generic /api rule.
+			"/api/live": {
+				target: `http://127.0.0.1:${process.env.LIVE_DEV_PORT || "8091"}`,
+				ws: true,
+				changeOrigin: true,
+			},
 			"/api": {
 				// BACKEND_DEV_PORT mirrors voiceya/__main__.py + run_app.py so a
 				// non-default backend port works end to end in dev.
