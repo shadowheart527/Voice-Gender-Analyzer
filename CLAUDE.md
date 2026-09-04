@@ -94,6 +94,15 @@ Whisper + Engine A + pyin，script 模式用 `script_cursor.ScriptCursor` 把 AS
 `/analyze-voice` 完全同形的 result 推给前端（`renderFromSummary` 直接复用）。录音停止后前端自动
 跑一次完整 batch 分析替换预览。设计文档：`docs/plans/sentence_live_mode.md`。
 
+## 即时模式（实验分支 `realtime-experimental`）
+
+`voiceya/live/realtime.py`：同一个 `/api/live` WebSocket，`start` 带 `realtime: true`。浏览器 50 ms 一块推 PCM；
+服务端每 50 ms 用 parselmouth（Praat 同款 Burg 共振峰 + 自相关基频）出 10 ms 帧，每 50 ms 用 charsiu
+`en_w2v2_fc_10ms`（wav2vec2 帧级 ARPABET 分类器，CPU）出音素标签（前瞻 120 ms，中位延迟 ~250 ms），
+音素结束时按 `stats.json` / `weights.json` 算 z-score 与 resonance（与 batch 的 `compute_resonance` 同公式）。
+前端 `web/src/modules/realtime-view.js` 画 8 s 滚动条带。仅英语。设计与局限：`docs/plans/realtime_experimental.md`。
+依赖组 `realtime`（praat-parselmouth、transformers）。
+
 ## Advice v2 输出 schema
 
 `summary.advice` 是测量 + 倾向并列展示，不出 verdict。来源：`voiceya/services/audio_analyser/advice_v2.py`（纯函数）+ `f0_panel.py`（pyin[60-250] + voiced_flag）。结构：

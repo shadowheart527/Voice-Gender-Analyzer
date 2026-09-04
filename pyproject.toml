@@ -58,13 +58,22 @@ engine-c = [
     "torchaudio>=2.5.0",
 ]
 
+# Experimental frame-level live mode (voiceya/live/realtime.py): Praat's pitch +
+# Burg formants in-process via parselmouth, and the charsiu wav2vec2 phone
+# frame classifier via transformers (weights ~380 MB, pulled from Hugging Face
+# on first start of the live worker).
+realtime = [
+    "praat-parselmouth>=0.4.7",
+    "transformers>=5.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv]
 # no-editable = true
-default-groups = ["ina-ss", "engine-c"]
+default-groups = ["ina-ss", "engine-c", "realtime"]
 # no-binary-package = ["av"]
 
 # torch 走 PyTorch 官方 CPU index — 默认 PyPI 上是 GPU build (~700 MB+)，

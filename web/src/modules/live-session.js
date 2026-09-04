@@ -34,7 +34,16 @@ export async function probeLive() {
  * }} opts
  * @returns {Promise<{ stop: () => Promise<void>, sampleRate: number }>}
  */
-export async function startLiveSession({ stream, language, mode, script, onEvent, onError }) {
+export async function startLiveSession({
+	stream,
+	language,
+	mode,
+	script,
+	onEvent,
+	onError,
+	realtime = false,
+	chunkMs = 100,
+}) {
 	// Ask for 16 kHz so the browser does the resampling; fall back to the
 	// device rate and let the worklet resample.
 	let ctx;
@@ -50,6 +59,7 @@ export async function startLiveSession({ stream, language, mode, script, onEvent
 		numberOfOutputs: 0,
 		channelCount: 1,
 		channelCountMode: "explicit",
+		processorOptions: { chunkSamples: Math.max(160, Math.round((16000 * chunkMs) / 1000)) },
 	});
 
 	const ws = new WebSocket(_wsUrl());
@@ -62,7 +72,7 @@ export async function startLiveSession({ stream, language, mode, script, onEvent
 	await new Promise((resolve, reject) => {
 		ws.addEventListener("open", () => {
 			opened = true;
-			ws.send(JSON.stringify({ type: "start", language, mode, script: script || null }));
+			ws.send(JSON.stringify({ type: "start", language, mode, script: script || null, realtime }));
 			resolve();
 		});
 		ws.addEventListener("error", () => reject(new Error("live socket failed")));

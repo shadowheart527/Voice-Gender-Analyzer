@@ -11,12 +11,15 @@ const TARGET_RATE = 16000;
 const CHUNK_SAMPLES = 1600; // 100 ms at 16 kHz
 
 class Pcm16CaptureProcessor extends AudioWorkletProcessor {
-	constructor() {
+	constructor(options) {
 		super();
+		// processorOptions.chunkSamples: smaller chunks = lower lag (the
+		// realtime experiment uses 50 ms = 800 samples).
+		this._chunk = options?.processorOptions?.chunkSamples || CHUNK_SAMPLES;
 		this._step = sampleRate / TARGET_RATE; // input samples per output sample
 		this._pos = 0; // fractional read position relative to the current block
 		this._prev = 0; // last sample of the previous block (for interpolation at pos<1)
-		this._buf = new Int16Array(CHUNK_SAMPLES);
+		this._buf = new Int16Array(this._chunk);
 		this._n = 0;
 		this._running = true;
 		this.port.onmessage = (e) => {
@@ -27,10 +30,10 @@ class Pcm16CaptureProcessor extends AudioWorkletProcessor {
 	_push(v) {
 		const s = v < -1 ? -1 : v > 1 ? 1 : v;
 		this._buf[this._n++] = s < 0 ? s * 0x8000 : s * 0x7fff;
-		if (this._n === CHUNK_SAMPLES) {
+		if (this._n === this._chunk) {
 			const out = this._buf;
 			this.port.postMessage(out.buffer, [out.buffer]);
-			this._buf = new Int16Array(CHUNK_SAMPLES);
+			this._buf = new Int16Array(this._chunk);
 			this._n = 0;
 		}
 	}

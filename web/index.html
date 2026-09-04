@@ -428,6 +428,18 @@
 								实时分析服务未连接
 							</span>
 						</label>
+						<label
+							id="record-live-instant-wrap"
+							class="record-live-toggle record-live-toggle--sub"
+							data-i18n-title="live.instantTip"
+							title="实验性：逐帧音高与共振峰、约 0.3 秒后出音素标签，画在滚动条带上。仅英语。"
+						>
+							<input type="checkbox" id="record-live-instant" />
+							<span data-i18n="live.instant">即时模式（实验，仅英语）</span>
+							<span id="record-live-instant-unavailable" class="hint-muted" data-i18n="live.instantUnavailable" hidden>
+								需要英语界面且音素模型已加载
+							</span>
+						</label>
 						<div id="record-script-panel" class="record-script-panel">
 							<div class="record-script-header">
 								<label class="record-script-picker-label" for="record-script-select">
@@ -685,6 +697,9 @@
 						<span id="duck-label" class="duck-label" data-i18n="duck.running">正在分析…</span>
 					</div>
 				</section>
+
+				<!-- Experimental frame-level live strip (realtime-view.js) -->
+				<div id="rt-root" class="rt-root card" hidden></div>
 
 				<!-- Phone-level timeline (Engine C, feature-flagged) — drill-down detail -->
 				<div id="phone-timeline-root" hidden></div>

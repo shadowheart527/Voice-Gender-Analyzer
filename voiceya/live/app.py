@@ -18,6 +18,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 import voiceya  # noqa: F401  — config load + submodule patches happen on import
 from voiceya.config import CFG
+from voiceya.live.realtime import PHONE_MODEL, RealtimeSession, ensure_phone_model
 from voiceya.live.session import LiveSession
 from voiceya.live.wav import pcm16_to_wav
 from voiceya.services.audio_analyser.seg import load_seg
@@ -45,8 +46,12 @@ async def _warm_whisper() -> None:
 async def lifespan(_app: FastAPI):
     await load_seg()
     warm = asyncio.create_task(_warm_whisper())
+    # Experimental frame-level mode: load the phone classifier in the
+    # background; sessions that ask for realtime before it is ready wait.
+    phone = asyncio.create_task(ensure_phone_model())
     yield
     warm.cancel()
+    phone.cancel()
 
 
 app = FastAPI(title=f"{CFG.app_name} live", lifespan=lifespan)
@@ -54,13 +59,22 @@ app = FastAPI(title=f"{CFG.app_name} live", lifespan=lifespan)
 
 @app.get("/api/live/healthz")
 async def healthz() -> dict[str, Any]:
-    return {"ok": True, "engine_c": CFG.engine_c_enabled, "languages": list(_ALLOWED_LANGS)}
+    return {
+        "ok": True,
+        "engine_c": CFG.engine_c_enabled,
+        "languages": list(_ALLOWED_LANGS),
+        "realtime": {
+            "phone_model": PHONE_MODEL.model is not None,
+            "error": PHONE_MODEL.error,
+            "languages": ["en-US"],
+        },
+    }
 
 
 @app.websocket("/api/live")
 async def live(ws: WebSocket) -> None:
     await ws.accept()
-    session: LiveSession | None = None
+    session: LiveSession | RealtimeSession | None = None
     closed = False
 
     async def send(payload: dict[str, Any]) -> None:
@@ -98,6 +112,25 @@ async def live(ws: WebSocket) -> None:
                 language = cmd.get("language") if cmd.get("language") in _ALLOWED_LANGS else "zh-CN"
                 mode = "script" if cmd.get("mode") == "script" else "free"
                 script = (cmd.get("script") or "").strip() or None
+                if cmd.get("realtime"):
+                    await ensure_phone_model()
+                    session = RealtimeSession(
+                        language=language, mode=mode, script=script, send=send
+                    )
+                    logger.info(
+                        "realtime session start lang=%s phones=%s", language, session.phones_enabled
+                    )
+                    await send(
+                        {
+                            "type": "ready",
+                            "language": language,
+                            "mode": mode,
+                            "realtime": True,
+                            "phones_enabled": session.phones_enabled,
+                            "engine_c": CFG.engine_c_enabled,
+                        }
+                    )
+                    continue
                 session = LiveSession(language=language, mode=mode, script=script, send=send)
                 logger.info("live session start lang=%s mode=%s", language, session.mode)
                 await send(
@@ -111,8 +144,9 @@ async def live(ws: WebSocket) -> None:
             elif kind == "stop":
                 if session is not None:
                     await session.stop()
-                    await send({"type": "done", "sentences": len(session.sentences)})
-                    logger.info("live session done sentences=%d", len(session.sentences))
+                    n = len(getattr(session, "sentences", None) or getattr(session, "phones", []))
+                    await send({"type": "done", "sentences": n})
+                    logger.info("live session done items=%d", n)
                     session = None
                 break
     except WebSocketDisconnect:

@@ -18,6 +18,7 @@ import { applyStaticDom, getLang, onLangChange, setLang, t } from "./modules/i18
 import { probeLive, startLiveSession } from "./modules/live-session.js";
 import { clearMetricsPanel } from "./modules/metrics-panel.js";
 import { PhoneTimeline } from "./modules/phone-timeline.js";
+import { RealtimeView } from "./modules/realtime-view.js";
 import { setupRecorder } from "./modules/recorder.js";
 import { buildScriptIdentity } from "./modules/resonance-history.js";
 import { wireResonanceConsonantsToggle } from "./modules/resonance-panel.js";
@@ -128,6 +129,34 @@ let _liveEnabled = true; // user toggle (persisted)
 let _liveAvailable = false; // /api/live/healthz reachable
 let _liveSession = null; // { stop() } while a session is open
 let _liveWasActive = false; // auto-run the batch analysis on the finished take
+// Experimental frame-level mode (English only): pitch/formants every 10 ms,
+// phone labels ~300 ms behind, drawn on a scrolling strip instead of the
+// sentence panels.  Requires the live worker to have loaded the phone model.
+let _liveInstant = false;
+let _rtAvailable = false;
+let _rtView = null;
+
+function _instantIsOn() {
+	return _liveIsOn() && _liveInstant && _rtAvailable && getLang() === "en-US";
+}
+
+function _syncInstantToggle() {
+	const box = $("record-live-instant");
+	const hint = $("record-live-instant-unavailable");
+	if (!box) return;
+	const ok = _rtAvailable && getLang() === "en-US";
+	box.disabled = !ok || !_liveEnabled;
+	if (hint) hint.hidden = ok;
+}
+
+function _destroyRtView() {
+	if (_rtView) {
+		_rtView.destroy();
+		_rtView = null;
+	}
+	const root = $("rt-root");
+	if (root) root.hidden = true;
+}
 
 function _setLiveStatus(text) {
 	const el = $("recorder-live-status");
@@ -155,10 +184,23 @@ async function _initLiveToggle() {
 		_liveEnabled = toggle.checked;
 		localStorage.setItem("record-live", _liveEnabled ? "1" : "0");
 	});
+	const instant = $("record-live-instant");
+	if (instant) {
+		_liveInstant = localStorage.getItem("record-live-instant") === "1";
+		instant.checked = _liveInstant;
+		instant.addEventListener("change", () => {
+			_liveInstant = instant.checked;
+			localStorage.setItem("record-live-instant", _liveInstant ? "1" : "0");
+		});
+		toggle.addEventListener("change", _syncInstantToggle);
+		onLangChange(_syncInstantToggle);
+	}
 	const health = await probeLive();
 	_liveAvailable = !!(health && health.ok && health.engine_c);
+	_rtAvailable = !!health?.realtime?.phone_model;
 	toggle.disabled = !_liveAvailable;
 	if (unavailable) unavailable.hidden = _liveAvailable;
+	_syncInstantToggle();
 }
 
 async function _startLive(stream) {
@@ -177,7 +219,23 @@ async function _startLive(stream) {
 		_phoneTimeline.destroy();
 		_phoneTimeline = null;
 	}
+	const instant = _instantIsOn();
 	setPhase("live");
+	if (instant) {
+		// Strip chart instead of the sentence panels.
+		const tlRoot = $("phone-timeline-root");
+		if (tlRoot) tlRoot.hidden = true;
+		if (_phoneTimeline) {
+			_phoneTimeline.destroy();
+			_phoneTimeline = null;
+		}
+		const root = $("rt-root");
+		if (root) {
+			root.hidden = false;
+			_rtView = new RealtimeView(root);
+			_rtView.start();
+		}
+	}
 	_setLiveStatus(t("live.status.connecting"));
 	try {
 		_liveSession = await startLiveSession({
@@ -185,6 +243,8 @@ async function _startLive(stream) {
 			language: getLang(),
 			mode: recordOpts.mode,
 			script: recordOpts.script,
+			realtime: instant,
+			chunkMs: instant ? 50 : 100,
 			onEvent: _onLiveEvent,
 			onError: (msg) => showToast(msg, "error"),
 		});
@@ -198,6 +258,11 @@ async function _startLive(stream) {
 }
 
 function _onLiveEvent(ev) {
+	if (_rtView && (ev.type.startsWith("rt_") || ev.type === "ready")) {
+		_rtView.push(ev);
+		if (ev.type === "ready") _setLiveStatus(t("live.status.listening"));
+		return;
+	}
 	switch (ev.type) {
 		case "ready":
 			_setLiveStatus(t("live.status.listening"));
@@ -241,6 +306,7 @@ async function _stopLive() {
 	} catch (err) {
 		console.warn("[live] stop failed", err);
 	}
+	_rtView?.stop();
 	_setLiveStatus(null);
 }
 
@@ -731,6 +797,7 @@ function setPhase(next) {
 	const controls = document.querySelector("#player-section .controls");
 	if (controls) controls.hidden = live;
 	if (live) $("file-name").textContent = t("live.fileName");
+	if (!live) _destroyRtView();
 	// While a live take is open the only way out is the recorder's Stop.
 	const changeBtn = $("change-file-btn");
 	if (changeBtn) changeBtn.hidden = live;

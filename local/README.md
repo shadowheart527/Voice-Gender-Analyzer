@@ -59,6 +59,16 @@ the "stops updating after a minute" bug on 02 Sep 2026). Per-sentence sidecar ti
 Measured on the desktop: 1.3 to 2.1 s from end of pause to panels updated (Whisper + Engine A +
 pyin in parallel ~0.5 s, sidecar ~0.7 to 1.2 s including its ffmpeg and Praat subprocesses).
 
+## Instant mode (experimental branch `realtime-experimental`, 03 Sep 2026)
+
+Second checkbox under "Live preview". Frame-level: Praat pitch/formants every 10 ms via parselmouth,
+ARPABET phone labels from the charsiu wav2vec2 frame classifier (CPU, ~250 ms median lag), per-phone
+resonance z-scores against the same stats.json, drawn on a scrolling strip. English only. Design and
+caveats: `docs/plans/realtime_experimental.md`. The phone model (~380 MB) downloads from Hugging Face
+the first time the live worker starts on this branch. Headless check:
+
+    python scripts/live_e2e_client.py clip16k.wav --realtime
+
 ## Known wrinkles
 
 - MFA is pinned to 3.4.1 in the sidecar Dockerfile (upstream leaves it unpinned). 3.4.2 removed the
